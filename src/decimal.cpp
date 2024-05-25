@@ -2,6 +2,21 @@
 #include "common.h"
 #include "magic_numbers.h"
 
+#define NATIVE_DIV_POWTEN(exponent, value_) \
+  do {                                      \
+    if ((exponent) == 0) {                  \
+      return;                               \
+    }                                       \
+    if ((exponent) == 1) {                  \
+      (value_) /= 10;                       \
+      return;                               \
+    }                                       \
+    if ((exponent) <= 2) {                  \
+      (value_) /= 100;                      \
+      return;                               \
+    }                                       \
+  } while (0)
+
 namespace libfixeypointy {
 
 void _CalculateMultiWordProduct128_2_2(const uint128_t *const half_words_a, const uint128_t *const half_words_b,
@@ -605,6 +620,9 @@ void Decimal::MultiplyAndSet(const Decimal &unsigned_input, ScaleType scale) {
 }
 
 void Decimal::DivideByConstantPowerOfTen128(uint32_t exponent) {
+  // OPTIM: native division is faster than magic devision on small pow-of-ten
+  NATIVE_DIV_POWTEN(exponent, value_);
+
   // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
 
   // Calculate 256-bit multiplication result.
