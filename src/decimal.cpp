@@ -584,6 +584,14 @@ void Decimal::MultiplyAndSet(const Decimal &unsigned_input, ScaleType scale) {
   // 2. If overflow, divide by 10^scale using 256-bit magic number division.
   // 3. If no overflow, divide by 10^scale using 128-bit magic number division.
 
+  // If both operands have empty upper 64 bits, what we really do is just 64bit * 64bit, we don't need 256bit multiply.
+  if (!(unsigned_input.ToNative() & TOP_MASK) && !(value_ & TOP_MASK)) {
+    value_ =
+        static_cast<NativeType>(static_cast<NativeType>(unsigned_input.ToNative()) * static_cast<NativeType>(value_));
+    DivideByConstantPowerOfTen128(scale);
+    return;
+  }
+
   // Natively (i.e., regardless of scales) calculate the 256-bit multiplication result.
   uint128_t half_words_result[4];
   {
